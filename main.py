@@ -1,23 +1,31 @@
 import tkinter
 from time import sleep
-from math import sin, cos, radians
+from math import sqrt, sin, cos, radians
 
 # Btw assume 1 meter = 10 px
 
+def magnitude(vector):
+    # Take a list/tuple that represents a vector and return its magnitude.
+    return sqrt(sum([i ** 2 for i in vector]))
+
+
 class Car:
     possible_states = ("do_nothing", "gas", "brake", "turn_right", "turn_left", "turn_right+gas", "turn_left+gas")
-    weight = 1000 #kilograms
-    tire_friction_coefficient_side = 1
-    tire_friction_coefficient_rolling = 0.2
-    acceleration = 1500 # N/s
+
+    engine_force = 89484 # Watts
+    drag_const = 0
+    rr_const = 0 # Rolling resistance constant.
+
 
     def __init__(self, canvas):
+        self.canvas = canvas
+
         # Create the car.
         self.car = [
-            canvas.create_line(290, 280, 290, 320), # Left Vert
-            canvas.create_line(310, 280, 310, 320), # Right Vert
-            canvas.create_line(290, 280, 310, 280), # Top Hor
-            canvas.create_line(290, 320, 310, 320), # Bot Hor
+            self.canvas.create_line(290, 280, 290, 320), # Left Vert
+            self.canvas.create_line(310, 280, 310, 320), # Right Vert
+            self.canvas.create_line(290, 280, 310, 280), # Top Hor
+            self.canvas.create_line(290, 320, 310, 320), # Bot Hor
         ]
         # Calculate car center coordinates (where the car's "vision" lines originate from)
         self.car_centerX = (canvas.coords(self.car[2])[0] + canvas.coords(self.car[2])[2]) / 2
@@ -29,36 +37,14 @@ class Car:
 
         # Set default state after creation.
         self.state = Car.possible_states[0]
-        self.orientation = 90 # degrees
-        
-        # Force vectors
-        self.forward_force = [0, 0]
-        self.frictional_force_f = [0, 0]
-        self.inertial_force = [0, 0]
-        self.frictional_force_i = [0, 0]
-        self.net_force = [0, 0]
-    
+        self.orientation = 90
+        self.u = [cos(self.orientation), sin(self.orientation)] # Unit vector for the orientation of the car.
+        self.velocity = [0, 0] # The car is at rest.
 
-    def update(self):
-        if self.state == Car.possible_states[0]:
-            pass
-        elif self.state == Car.possible_states[1]:
-            self.forward_force
-        elif self.state == Car.possible_states[2]:
-            pass
-        elif self.state == Car.possible_states[3]:
-            pass
-        elif self.state == Car.possible_states[4]:
-            pass
-        elif self.state == Car.possible_states[5]:
-            pass
-        elif self.state == Car.possible_states[6]:
-            pass
-        
-        self.net_force = [
-            self.forward_force[0] + self.frictional_force_f[0] + self.frictional_force_i[0] + self.inertial_force[0],
-            self.forward_force[1] + self.frictional_force_f[1] + self.frictional_force_i[1] + self.inertial_force[1]
-        ]
+        # Forces and physics stuff.
+        self.f_traction = [i * Car.engine_force for i in self.u] # self.u * Car.engine_force
+        self.f_drag = Car.drag_const * self.velocity * magnitude(self.velocity)
+        self.f_rr = [i * -Car.rr_const for i in self.velocity]
 
 
 root = tkinter.Tk()
