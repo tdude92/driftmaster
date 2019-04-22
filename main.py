@@ -12,10 +12,11 @@ def magnitude(vector):
 class Car:
     possible_states = ("do_nothing", "gas", "brake", "turn_right", "turn_left", "turn_right+gas", "turn_left+gas")
 
-    max_engine_force = 5000 # N
-    drag_const = 0.4257
-    rr_const = 12.8 # Rolling resistance constant.
-    mass = 1000
+    max_engine_force = 2000 # N
+    mass = 1000 # kg
+    drag_const = 0.39 # Drag constant.
+    rr_const = 11.7 # Rolling resistance constant.
+    braking_const = mass * 9.8 * 0.9 # Friction = normal force [AKA m * g] * friction coefficient.
 
 
     def __init__(self, canvas):
@@ -48,15 +49,33 @@ class Car:
         self.f_traction = [i * self.engine_force for i in self.u] # self.u * Car.engine_force
         self.f_drag = [i * -Car.drag_const * magnitude(self.velocity) for i in self.velocity] # drag_const * acceleration * |acceleration|
         self.f_rr = [i * -Car.rr_const for i in self.velocity] # velocity * -rolling resistance
+        self.f_braking = [0, 0] # direction unit vector * braking force
         self.acceleration = [(self.f_traction[i] + self.f_drag[i] + self.f_rr[i]) / Car.mass for i in range(2)] # Vector sum of f_traction, f_drag, f_rr divided by mass
         
     
     def update(self): # Check at half-second intervals.
         # Update the values of the forces, acceleration, and velocity.
-        self.f_traction = [i * self.engine_force for i in self.u] # self.u * Car.engine_force
+        if self.state == Car.possible_states[0]: # Car is doing nothing.
+            self.f_traction = [0, 0]
+            self.f_braking = [0, 0]
+        elif self.state == Car.possible_states[1]: # GAS GAS GAS
+            self.f_traction = [i * self.engine_force for i in self.u] # self.u * Car.engine_force
+            self.f_braking = [0, 0]
+        elif self.state == Car.possible_states[2]: # Driver is being a coward (braking)
+            self.f_traction = [0, 0]
+            self.f_braking = [-i * Car.braking_const for i in self.u] # direction unit vector * braking force
+
         self.f_drag = [i * -Car.drag_const * magnitude(self.velocity) for i in self.velocity] # drag_const * acceleration * |acceleration|
         self.f_rr = [i * -Car.rr_const for i in self.velocity] # velocity * -rolling resistance
         self.acceleration = [(self.f_traction[i] + self.f_drag[i] + self.f_rr[i]) / Car.mass for i in range(2)] # Vector sum of f_traction, f_drag, f_rr divided by mass
+
+        # There should be no braking force if the car is not moving.
+        if [round([i * magnitude(self.velocity) for i in self.u][i] - self.velocity[i]) for i in range(2)] == [0, 0] and [round(i) for i in self.velocity] != [0, 0]:
+            # Check if self.velocity's direction is the same as the direction of self.u (orientation) and if the velocity's magnitude is not 0.
+            self.acceleration = [self.acceleration[i] + (self.f_braking[i] / Car.mass) for i in range(2)]
+        
+        print([i * magnitude(self.velocity) for i in self.u])
+        print(self.velocity)
         
         # Get velocity (v = v + dt * a)
         for i in range(len(self.velocity)):
@@ -69,28 +88,35 @@ canvas = tkinter.Canvas(root, width = 600, height = 600)
 canvas.pack()
 
 ae86 = Car(canvas)
+ae86.state = Car.possible_states[1]
 
-for _ in range(60):
+for i in range(60):
     ae86.update()
     print()
-    print("Traction:" + str(magnitude(ae86.f_traction)))
-    print("Drag:" + str(magnitude(ae86.f_drag)))
-    print("Rolling Resistance:" + str(magnitude(ae86.f_rr)))
-    print("Acceleration:" + str(magnitude(ae86.acceleration)))
-    print("Velocity:" + str(magnitude(ae86.velocity)))
+    print("Traction:" + str(magnitude(ae86.f_traction)) + " N")
+    print("Braking Force:" + str(magnitude(ae86.f_braking)) + " N")
+    print("Drag:" + str(magnitude(ae86.f_drag)) + " N")
+    print("Rolling Resistance:" + str(magnitude(ae86.f_rr)) + " N")
+    print("Acceleration:" + str(magnitude(ae86.acceleration)) + " m/s^2")
+    print("Velocity:" + str(magnitude(ae86.velocity)) + " m/s")
 
-    ae86.engine_force += 100 if ae86.engine_force < Car.max_engine_force else 0
+    ae86.engine_force += 1000 if ae86.engine_force < Car.max_engine_force else 0
     sleep(0.1)
+
+ae86.state = Car.possible_states[2]
+print("BRAKE")
+
 while True:
     ae86.update()
     print()
-    print("Traction:" + str(magnitude(ae86.f_traction)))
-    print("Drag:" + str(magnitude(ae86.f_drag)))
-    print("Rolling Resistance:" + str(magnitude(ae86.f_rr)))
-    print("Acceleration:" + str(magnitude(ae86.acceleration)))
-    print("Velocity:" + str(magnitude(ae86.velocity)))
+    print("Traction:" + str(magnitude(ae86.f_traction)) + " N")
+    print("Braking Force:" + str(magnitude(ae86.f_braking)) + " N")
+    print("Drag:" + str(magnitude(ae86.f_drag)) + " N")
+    print("Rolling Resistance:" + str(magnitude(ae86.f_rr)) + " N")
+    print("Acceleration:" + str(magnitude(ae86.acceleration)) + " m/s^2")
+    print("Velocity:" + str(magnitude(ae86.velocity)) + " m/s")
 
     ae86.engine_force -= 100 if ae86.engine_force > 0 else 0
-    sleep(0.1)
+    sleep(0.5)
 
 root.mainloop()
