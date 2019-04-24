@@ -1,8 +1,6 @@
 import tkinter
 from time import sleep
-from math import sqrt, sin, cos, radians
-
-# Btw assume 1 meter = 10 px
+from math import sqrt, sin, cos, acos, radians
 
 def magnitude(vector):
     # Take a list/tuple that represents a vector and return its magnitude.
@@ -24,10 +22,10 @@ class Car:
 
         # Create the car.
         self.car = [
-            self.canvas.create_line(290, 280, 290, 320), # Left Vert
-            self.canvas.create_line(310, 280, 310, 320), # Right Vert
-            self.canvas.create_line(290, 280, 310, 280), # Top Hor
-            self.canvas.create_line(290, 320, 310, 320), # Bot Hor
+            self.canvas.create_line(490, 480, 490, 520), # Left Vert
+            self.canvas.create_line(510, 480, 510, 520), # Right Vert
+            self.canvas.create_line(490, 480, 510, 480), # Top Hor
+            self.canvas.create_line(490, 520, 510, 520), # Bot Hor
         ]
 
         # Calculate car center coordinates (where the car's "vision" lines originate from)
@@ -40,7 +38,7 @@ class Car:
 
         # Set default state after creation.
         self.state = Car.possible_states[0]
-        self.orientation = 90
+        self.orientation = radians(90)
         self.u = [cos(self.orientation), sin(self.orientation)] # Unit vector for the orientation of the car.
         self.engine_force = 0
         self.velocity = [0, 0] # The car is at rest.
@@ -63,34 +61,40 @@ class Car:
             self.f_braking = [0, 0]
         elif self.state == Car.possible_states[2]: # Driver is being a coward (braking)
             self.f_traction = [0, 0]
-            self.f_braking = [-i * Car.braking_const for i in self.u] # direction unit vector * braking force
+            # There should be no braking force if the car is not moving.
+            if [round([i * magnitude(self.velocity) for i in self.u][i] - self.velocity[i]) for i in range(2)] == [0, 0] and magnitude(self.velocity) > 5:
+                # Check if self.velocity's direction is the same as the direction of self.u (orientation) and if the velocity's magnitude is not 0.
+                self.f_braking = [-i * Car.braking_const for i in self.u] # direction unit vector * braking force
+            else:
+                self.f_braking = [0, 0]
+                self.velocity = [0, 0]
+                self.state = Car.possible_states[0]
+                #no_accelerate_flag = True
 
         self.f_drag = [i * -Car.drag_const * magnitude(self.velocity) for i in self.velocity] # drag_const * acceleration * |acceleration|
         self.f_rr = [i * -Car.rr_const for i in self.velocity] # velocity * -rolling resistance
-        self.acceleration = [(self.f_traction[i] + self.f_drag[i] + self.f_rr[i]) / Car.mass for i in range(2)] # Vector sum of f_traction, f_drag, f_rr divided by mass
 
-        # There should be no braking force if the car is not moving.
-        if [round([i * magnitude(self.velocity) for i in self.u][i] - self.velocity[i]) for i in range(2)] == [0, 0] and [round(i) for i in self.velocity] != [0, 0]:
-            # Check if self.velocity's direction is the same as the direction of self.u (orientation) and if the velocity's magnitude is not 0.
-            self.acceleration = [self.acceleration[i] + (self.f_braking[i] / Car.mass) for i in range(2)]
-        
-        print([i * magnitude(self.velocity) for i in self.u])
-        print(self.velocity)
-        
-        # Get velocity (v = v + dt * a)
+        self.acceleration = [(self.f_traction[i] + self.f_drag[i] + self.f_rr[i] + self.f_braking[i]) / Car.mass for i in range(2)] # Vector sum of f_traction, f_drag, f_rr divided by mass.
+
+        # Get velocity (v = v + dt * a) in m/s
         for i in range(len(self.velocity)):
-            self.velocity[i] += 0.5 * self.acceleration[i]
+            self.velocity[i] += self.acceleration[i]
+        
+        for line in self.car:
+            self.canvas.move(line, self.velocity[0], -(self.velocity[1]))
+        
+        canvas.update()
 
 
 root = tkinter.Tk()
 
-canvas = tkinter.Canvas(root, width = 600, height = 600)
+canvas = tkinter.Canvas(root, width = 1000, height = 1000)
 canvas.pack()
 
 ae86 = Car(canvas)
 ae86.state = Car.possible_states[1]
 
-for i in range(60):
+for i in range(10):
     ae86.update()
     print()
     print("Traction:" + str(magnitude(ae86.f_traction)) + " N")
@@ -117,6 +121,6 @@ while True:
     print("Velocity:" + str(magnitude(ae86.velocity)) + " m/s")
 
     ae86.engine_force -= 100 if ae86.engine_force > 0 else 0
-    sleep(0.5)
+    sleep(0.1)
 
 root.mainloop()
