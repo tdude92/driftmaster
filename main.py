@@ -1,10 +1,14 @@
 import tkinter
 from time import sleep
-from math import sqrt, sin, cos, acos, radians
+from math import sqrt, sin, cos, atan, radians, pi
 
 def magnitude(vector):
     # Take a list/tuple that represents a vector and return its magnitude.
     return sqrt(sum([i ** 2 for i in vector]))
+
+def direction(td_vector):
+    if magnitude(td_vector) > 0:
+        return atan(td_vector[1] / td_vector[0])
 
 
 class Car:
@@ -20,15 +24,14 @@ class Car:
         "turn_left+brake",
     )
 
-    max_engine_force = 4000 # N
+    max_engine_force = 2000 # N
     mass = 1000 # kg
     wheelbase = 2.4 # m
     steering_angle = radians(45) # radian
-    sharp_steering_angle = radians(75) # radians
     drag_const = 0.39 # Drag constant.
     rr_const = 11.7 # Rolling resistance constant.
     braking_const = mass * 9.8 * 0.9 # Friction = normal force [AKA m * g] * friction coefficient.
-    cornering_stiffness = 50 # N
+    cornering_stiffness = 500
 
 
     def __init__(self, canvas):
@@ -36,10 +39,10 @@ class Car:
 
         # Create the car.
         self.car = [
-            self.canvas.create_line(490, 880, 490, 920, fill = "green", width = 2), # Left Vert
-            self.canvas.create_line(510, 880, 510, 920, fill = "green", width = 2), # Right Vert
-            self.canvas.create_line(490, 880, 510, 880, fill = "green", width = 2), # Top Hor
-            self.canvas.create_line(490, 920, 510, 920, fill = "green", width = 2), # Bot Hor
+            self.canvas.create_line(295, 490, 295, 510, fill = "green", width = 2), # Left Vert
+            self.canvas.create_line(305, 490, 305, 510, fill = "green", width = 2), # Right Vert
+            self.canvas.create_line(295, 490, 305, 490, fill = "red", width = 2), # Top Hor
+            self.canvas.create_line(295, 510, 305, 510, fill = "green", width = 2), # Bot Hor
         ]
 
         # Calculate car center coordinates
@@ -64,6 +67,17 @@ class Car:
         
     
     def update(self): # Check at half-second intervals.
+        if round(magnitude(self.velocity)) > 0:
+            self.slip_angle = direction(self.velocity) - self.orientation
+        else:
+            self.slip_angle = 0
+
+        if round(self.slip_angle, 2) == 0:
+            self.f_lateral = [0, 0]
+        else:
+            self.mag_lateral = -(Car.cornering_stiffness * self.slip_angle)
+            self.f_lateral = [self.mag_lateral * abs(sin(self.slip_angle)) * -i for i in self.velocity]
+
         # Update the values of the forces, acceleration, and velocity.
         if self.state == Car.possible_states[0]: # Car is doing nothing.
             self.f_traction = [0, 0]
@@ -84,43 +98,38 @@ class Car:
             self.f_traction = [0, 0]
             self.f_braking = [0, 0]
 
-            self.turning_radius = Car.wheelbase / sin(Car.steering_angle) # R = L / sin(steering_angle)
-            self.angular_velocity = (magnitude(self.velocity) / self.turning_radius) / 10 # av = |v| / R
-            self.orientation += self.angular_velocity
+            self.angular_velocity = -pi / 32 # per 1/10 seconds
+            self.orientation -= self.angular_velocity
             self.u = [cos(self.orientation), sin(self.orientation)]
 
-            # TODO: MAKE THIS WORK
-            self.slip_angle = abs(acos(self.velocity[0]) / magnitude(self.velocity) - acos(self.u[0]))
-            self.mag_lateral = Car.cornering_stiffness * self.slip_angle
-            self.f_lateral = [sin(self.slip_angle) * -i for i in self.velocity]
-
-            # Recreate the turned car with some trig.
-            self.front_center = [
-                self.car_centerX + 20 * cos(self.orientation),
-                self.car_centerY - 20 * sin(self.orientation)
-            ]
-            self.back_center = [
-                self.car_centerX - 20 * cos(self.orientation),
-                self.car_centerY + 20 * sin(self.orientation)
-            ]
-
-            self.top_right = [
-                self.front_center[0] + 10 * cos(self.orientation - radians(90)),
-                self.front_center[1] - 10 * sin(self.orientation - radians(90)),
-            ]
             self.top_left = [
-                self.front_center[0] + 10 * cos(self.orientation + radians(90)),
-                self.front_center[1] - 10 * sin(self.orientation + radians(90)),
+                self.canvas.coords(self.car[0])[0],
+                self.canvas.coords(self.car[0])[1]
             ]
-            self.bot_right = [
-                self.back_center[0] + 10 * cos(self.orientation - radians(90)),
-                self.back_center[1] - 10 * sin(self.orientation - radians(90)),
+            self.top_right = [
+                self.canvas.coords(self.car[0])[2],
+                self.canvas.coords(self.car[0])[3]
             ]
             self.bot_left = [
-                self.back_center[0] + 10 * cos(self.orientation + radians(90)),
-                self.back_center[1] - 10 * sin(self.orientation + radians(90)),
+                self.canvas.coords(self.car[1])[0],
+                self.canvas.coords(self.car[1])[1]
+            ]
+            self.bot_right = [
+                self.canvas.coords(self.car[1])[2],
+                self.canvas.coords(self.car[1])[3]
             ]
 
+            self.coords = [self.top_left, self.top_right, self.bot_left, self.bot_right]
+
+            for i in range(len(self.coords)):
+                self.temp_x = self.coords[i][0] - self.car_centerX
+                self.temp_y = self.coords[i][1] - self.car_centerY
+
+                self.rotated_x = self.temp_x * cos(self.angular_velocity) - self.temp_y * sin(self.angular_velocity)
+                self.rotated_y = self.temp_x * sin(self.angular_velocity) + self.temp_y * cos(self.angular_velocity)
+
+                self.coords[i][0] = self.rotated_x + self.car_centerX
+                self.coords[i][1] = self.rotated_y + self.car_centerY
             
             for i in self.car:
                 self.canvas.delete(i)
@@ -128,7 +137,7 @@ class Car:
             self.car = [
                 self.canvas.create_line(self.top_left[0], self.top_left[1], self.bot_left[0], self.bot_left[1], fill = "green", width = 2), # Left Vert
                 self.canvas.create_line(self.top_right[0], self.top_right[1], self.bot_right[0], self.bot_right[1], fill = "green", width = 2), # Right Vert
-                self.canvas.create_line(self.top_left[0], self.top_left[1], self.top_right[0], self.top_right[1], fill = "green", width = 2), # Top Hor
+                self.canvas.create_line(self.top_left[0], self.top_left[1], self.top_right[0], self.top_right[1], fill = "red", width = 2), # Top Hor
                 self.canvas.create_line(self.bot_left[0], self.bot_left[1], self.bot_right[0], self.bot_right[1], fill = "green", width = 2), # Bot Hor
             ]
             print(self.angular_velocity)
@@ -168,15 +177,17 @@ class Car:
 
 root = tkinter.Tk()
 
-canvas = tkinter.Canvas(root, width = 1000, height = 1000, bg = "black")
+canvas = tkinter.Canvas(root, width = 600, height = 600, bg = "black")
 canvas.pack()
 
 ae86 = Car(canvas)
 ae86.state = Car.possible_states[1]
 
-for i in range(20):
+for i in range(40):
     ae86.update()
     print()
+    print(ae86.u, ae86.velocity)
+    print(ae86.orientation, direction(ae86.velocity))
     print("Traction:" + str(magnitude(ae86.f_traction)) + " N")
     print("Braking Force:" + str(magnitude(ae86.f_braking)) + " N")
     print("Drag:" + str(magnitude(ae86.f_drag)) + " N")
@@ -190,16 +201,12 @@ for i in range(20):
 
 ae86.state = Car.possible_states[3]
 print("DRIFT")
-
-for i in range(10):
+for i in range(20):
     ae86.update()
     print()
-    print("Traction:" + str(magnitude(ae86.f_traction)) + " N")
-    print("Braking Force:" + str(magnitude(ae86.f_braking)) + " N")
-    print("Drag:" + str(magnitude(ae86.f_drag)) + " N")
-    print("Rolling Resistance:" + str(magnitude(ae86.f_rr)) + " N")
-    print("Acceleration:" + str(magnitude(ae86.acceleration)) + " m/s^2")
-    print("Velocity:" + str(magnitude(ae86.velocity)) + " m/s")
+    print(ae86.orientation)
+    print(ae86.slip_angle)
+    print(ae86.f_lateral, magnitude(ae86.f_lateral))
 
     ae86.engine_force -= 100 if ae86.engine_force > 0 else 0
     sleep(0.1)
@@ -207,7 +214,17 @@ for i in range(10):
 ae86.state = Car.possible_states[1]
 while True:
     ae86.update()
-    ae86.engine_force += 1000 if ae86.engine_force < Car.max_engine_force else 0
+    ae86.engine_force = 2000
+    print(ae86.u, ae86.velocity)
+    print(ae86.orientation, direction(ae86.velocity))
+    print("Traction:" + str(magnitude(ae86.f_traction)) + " N")
+    print("Braking Force:" + str(magnitude(ae86.f_braking)) + " N")
+    print("Drag:" + str(magnitude(ae86.f_drag)) + " N")
+    print("Rolling Resistance:" + str(magnitude(ae86.f_rr)) + " N")
+    print("Lateral Force:" + str(magnitude(ae86.f_lateral)) + " N")
+    print("Acceleration:" + str(magnitude(ae86.acceleration)) + " m/s^2")
+    print("Velocity:" + str(magnitude(ae86.velocity)) + " m/s")
+    print()
     sleep(0.1)
 
 root.mainloop()
