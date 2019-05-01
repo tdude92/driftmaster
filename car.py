@@ -1,5 +1,4 @@
 import tkinter
-from time import sleep
 from math import sqrt, sin, cos, atan, radians, pi
 
 def magnitude(vector):
@@ -27,7 +26,6 @@ class Car:
     drag_const = 0.39 # Drag constant.
     rr_const = 11.7 # Rolling resistance constant.
     braking_const = mass * 9.8 * 0.9 # Friction = normal force [AKA m * g] * friction coefficient.
-    cornering_stiffness = 5000
 
 
     def __init__(self, canvas):
@@ -63,7 +61,6 @@ class Car:
         
     
     def update(self): # Check at half-second intervals.
-
         # Update the values of the forces, acceleration, and velocity.
         if self.state == Car.possible_states[0]: # Car is doing nothing.
             self.f_traction = [0, 0]
@@ -203,53 +200,4 @@ class Car:
         self.car_centerY = (canvas.coords(self.car[0])[1] + canvas.coords(self.car[0])[3]) / 2
         
         canvas.update()
-
-
-root = tkinter.Tk()
-
-canvas = tkinter.Canvas(root, width = 600, height = 600, bg = "black")
-canvas.pack()
-
-ae86 = Car(canvas)
-ae86.state = Car.possible_states[1]
-
-for i in range(40):
-    ae86.update()
-    print()
-    print(ae86.u, ae86.velocity)
-    print(ae86.orientation, direction(ae86.velocity))
-    print("Traction:" + str(magnitude(ae86.f_traction)) + " N")
-    print("Braking Force:" + str(magnitude(ae86.f_braking)) + " N")
-    print("Drag:" + str(magnitude(ae86.f_drag)) + " N")
-    print("Rolling Resistance:" + str(magnitude(ae86.f_rr)) + " N")
-    print("Acceleration:" + str(magnitude(ae86.acceleration)) + " m/s^2")
-    print("Velocity:" + str(magnitude(ae86.velocity)) + " m/s")
-
-    ae86.engine_force += 1000 if ae86.engine_force < Car.max_engine_force else 0
-    sleep(0.1)
-
-ae86.state = Car.possible_states[4]
-print("DRIFT")
-for i in range(20):
-    ae86.update()
-    print()
-    print(ae86.orientation)
-
-    ae86.engine_force -= 100 if ae86.engine_force > 0 else 0
-    sleep(0.1)
-
-ae86.state = Car.possible_states[1]
-for i in range(40000):
-    ae86.update()
-    print(ae86.u, ae86.velocity)
-    print(ae86.orientation, direction(ae86.velocity))
-    print("Traction:" + str(magnitude(ae86.f_traction)) + " N")
-    print("Braking Force:" + str(magnitude(ae86.f_braking)) + " N")
-    print("Drag:" + str(magnitude(ae86.f_drag)) + " N")
-    print("Rolling Resistance:" + str(magnitude(ae86.f_rr)) + " N")
-    print("Acceleration:" + str(magnitude(ae86.acceleration)) + " m/s^2")
-    print("Velocity:" + str(magnitude(ae86.velocity)) + " m/s")
-    print()
-    sleep(0.1)
-
-root.mainloop()
+        
