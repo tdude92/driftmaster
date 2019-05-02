@@ -5,7 +5,9 @@ def magnitude(vector):
     # Take a list/tuple that represents a vector and return its magnitude.
     return sqrt(sum([i ** 2 for i in vector]))
 
+
 def direction(td_vector):
+    # Take a 2d vector (list with two elements) and return the angle of the vector.
     if magnitude(td_vector) > 0:
         return atan(td_vector[1] / td_vector[0])
 
@@ -200,4 +202,26 @@ class Car:
         self.car_centerY = (canvas.coords(self.car[0])[1] + canvas.coords(self.car[0])[3]) / 2
         
         canvas.update()
-        
+
+
+# Tests
+if __name__ == "__main__":
+    from time import sleep
+    from random import randint
+
+    root = tkinter.Tk()
+
+    canvas = tkinter.Canvas(root, width = 600, height = 600, bg = "black")
+    canvas.pack()
+
+    test_car = Car(canvas)
+
+    test_car.engine_force = 2000
+    for i in range(500):
+        test_car.state = Car.possible_states[randint(0, 4)]
+        print(test_car.state)
+        for i in range(10):
+            test_car.update()
+            sleep(0.1)
+    
+    root.mainloop()
