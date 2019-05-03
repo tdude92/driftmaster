@@ -1,11 +1,11 @@
-from math import e
+from math import e, tanh
 from random import randint
 
 # Actual nodes stored in class variable. Nodes are then referenced with assigned IDs.
 
-def sigmoid(x):
+def activation(x):
     # Activation function.
-    return 1 / (1 + e ** -x)
+    return tanh(x)
 
 
 class BoundVar:
@@ -37,13 +37,16 @@ class OutNode:
     id_counter = 0
     nodes = []
 
-    def __init__(self):
+    def __init__(self, callback = None):
+        # Callback: a function reference that will be called when an outnode has the highest value in its network.
         self.ID = OutNode.id_counter
         OutNode.id_counter += 1
         OutNode.nodes.append(self)
 
         self.connections = []
         self.value = 0
+
+        self.callback = callback
     
     def get_value(self):
         # Calculate the value of the node based on the weighted sum of the input node
@@ -54,7 +57,7 @@ class OutNode:
         self.value = 0
         for node in self.connections:
             self.value += InNode.nodes[node[0]].value * node[1]
-        self.value = sigmoid(self.value)
+        self.value = activation(self.value)
 
     def __repr__(self):
         return str(self.ID)
@@ -100,6 +103,26 @@ class Network:
         self.output_nodes = []
         self.output = None
     
+    def create_input_nodes(self, bound_vars):
+        # Creates input nodes and appends their IDs to self.input_nodes.
+        
+        # Arguments:
+        #     bound_vars (list/tuple): A list/tuple containing BoundVar instances.
+        #                              Used in the creation of InNode instances.
+        # Returns: None
+        for var in bound_vars:
+            self.input_nodes.append(InNode(var).ID)
+    
+    def create_output_nodes(self, callbacks):
+        # Creates output nodes
+        
+        # Arguments:
+        #     callbacks (list/tuple): A list/tuple containing function references.
+        #                             Used in the creation of OutNode instances.
+        # Returns: None
+        for function in callbacks:
+            self.output_nodes.append(OutNode(function).ID)
+    
     def connect(self):
         # Adds the required connections between each of the nodes.
 
@@ -120,32 +143,42 @@ class Network:
         for node in self.output_nodes:
             OutNode.nodes[node].get_value()
         
-        self.output = max([OutNode.nodes[node].value for node in self.output_nodes])
+        self.outputs = [OutNode.nodes[node].value for node in self.output_nodes]
+        OutNode.nodes[self.output_nodes[self.outputs.index(max(self.outputs))]].callback()
 
 
+# Tests
 if __name__ == "__main__":
+    from time import sleep
+
     test_network = Network()
+
+    def foo():
+        print("cool boi")
+    
+    def bar():
+        print("bar has won the day")
 
     x = BoundVar(0.5)
     y = BoundVar(0.4)
     z = BoundVar(0.6)
     
-    test_network.input_nodes.append(InNode(x).ID)
-    test_network.input_nodes.append(InNode(y).ID)
-    test_network.input_nodes.append(InNode(z).ID)
-
-    test_network.output_nodes.append(OutNode().ID)
-    test_network.output_nodes.append(OutNode().ID)
+    test_network.create_input_nodes([x, y, z])
+    test_network.create_output_nodes([foo, bar])
 
     test_network.connect()
     test_network.update()
 
-    print(test_network.output)
+    for node in test_network.input_nodes:
+        print(InNode.nodes[node].connections)
 
-    x.update_val(0.6)
-    y.update_val(0.5)
-    z.update_val(4)
+    for node in test_network.output_nodes:
+        print(OutNode.nodes[node].connections)
 
-    test_network.update()
+    while True:
+        x.update_val(randint(0, 600))
+        y.update_val(randint(0, 600))
+        z.update_val(randint(0, 600))
 
-    print(test_network.output)
+        test_network.update()
+        sleep(0.5)
