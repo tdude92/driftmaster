@@ -1,5 +1,6 @@
 import tkinter
 from math import sqrt, sin, cos, atan, radians, pi
+from evolution import *
 
 def magnitude(vector):
     # Take a list/tuple that represents a vector and return its magnitude.
@@ -26,7 +27,6 @@ class Car:
         "turn_left",
     )
 
-    max_engine_force = 2000 # N
     mass = 1000 # kg
     wheelbase = 2.4 # m
     steering_angle = radians(45) # radian
@@ -34,10 +34,14 @@ class Car:
     rr_const = 11.7 # Rolling resistance constant.
     braking_const = mass * 9.8 * 0.9 # Friction = normal force [AKA m * g] * friction coefficient.
 
+    id_counter = 0
 
-    def __init__(self, canvas, track_walls, x0, y0, x1, y1):
+
+    def __init__(self, canvas, track_walls, network, weights, x0, y0, x1, y1):
         self.canvas = canvas
         self.walls = track_walls
+        self.ID = Car.id_counter
+        Car.id_counter += 1
 
         # Create the car.
         self.car = [
@@ -56,11 +60,40 @@ class Car:
         self.state = Car.possible_states[0]
         self.orientation = radians(90)
         self.u = [cos(self.orientation), sin(self.orientation)] # Unit vector for the orientation of the car.
-        self.engine_force = 0
+        self.engine_force = 2000 # N
         self.velocity = [0, 0] # The car is at rest.
         self.angular_velocity = 0 # radians/s
         self.is_dead = False
+        self.distance_travelled = 0 # metres
+        self.vision_lengths = [
+            BoundVar(0),
+            BoundVar(0),
+            BoundVar(0),
+            BoundVar(0),
+            BoundVar(0),
+            BoundVar(0)
+        ]
         self.calculate_vision()
+
+
+        self.callbacks = [
+            self.do_nothing,
+            self.gas,
+            self.brake,
+            self.turn_right,
+            self.turn_left
+        ]
+
+        
+        # Initialize Neural Network
+        self.weights = weights
+
+        self.network = network
+        self.network.car = self
+        self.network.create_input_nodes(self.vision_lengths, bias = True)
+        self.network.create_output_nodes(self.callbacks)
+        self.network.connect(self.weights)
+        self.network.update()
 
 
         # Forces and physics stuff.
@@ -70,7 +103,20 @@ class Car:
         self.f_braking = [0, 0] # direction unit vector * braking force
         self.f_centripetal = [0, 0]
         self.acceleration = [(self.f_traction[i] + self.f_drag[i] + self.f_rr[i] + self.f_centripetal[i]) / Car.mass for i in range(2)] # Vector sum of f_traction, f_drag, f_rr divided by mass
-        
+    
+
+    # Callbacks
+    def do_nothing(self):
+        self.state = Car.possible_states[0]
+    def gas(self):
+        self.state = Car.possible_states[1]
+    def brake(self):
+        self.state = Car.possible_states[2]
+    def turn_right(self):
+        self.state = Car.possible_states[3]
+    def turn_left(self):
+        self.state = Car.possible_states[4]
+
 
     def calculate_vision(self):
         # Vision.
@@ -182,11 +228,17 @@ class Car:
                 self.line_lengths.pop(self.line_lengths.index(max(self.line_lengths)))
         
         self.vision = [i[0] for i in self.vision]
+        
+        for i in range(len(self.vision)):
+            coords = self.canvas.coords(self.vision[i])
+            self.vision_lengths[i].update_val(sqrt((coords[0] - coords[2]) ** 2 + (coords[1] - coords[3]) ** 2))
     
     
     def update(self): # Check at half-second intervals.
         # Update the values of the forces, acceleration, and velocity.
         if not self.is_dead:
+            self.network.update()
+
             if self.state == Car.possible_states[0]: # Car is doing nothing.
                 self.f_traction = [0, 0]
                 self.f_braking = [0, 0]
@@ -312,9 +364,12 @@ class Car:
 
             self.acceleration = [i / 10 for i in self.acceleration]
 
-            # Get velocity (v = v + dt * a) in m/s
+            # Get velocity (v = v + dt * a) in m/s/10
             for i in range(len(self.velocity)):
                 self.velocity[i] += self.acceleration[i]
+
+            # Update distance travelled.
+            self.distance_travelled += magnitude(self.velocity)
             
             # Actually move the car.
             for line in self.car:
@@ -347,6 +402,10 @@ class Car:
             for line in self.vision:
                 self.canvas.delete(line)
             self.canvas.update()
+    
+    
+    def __repr__(self):
+        return str(self.ID)
 
 
 # Tests
@@ -364,7 +423,7 @@ if __name__ == "__main__":
     test_car.engine_force = 2000
     for i in range(500):
         test_car.state = Car.possible_states[randint(0, 4)]
-        print(test_car.state)
+        print(test_car.is_dead)
         for i in range(10):
             test_car.update()
             sleep(0.1)
