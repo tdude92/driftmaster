@@ -77,7 +77,7 @@ class InNode:
 
         self.connections = []
         self.bound_to = boundto_var.var # This is the variable that the node is bound to.
-        self.value = self.bound_to[0]
+        self.value = activation(self.bound_to[0]) / 600
     
     def add_connection(self, node_id, weight):
         # Appends a tuple in the form (node_id, weight) to the connections instance variable of the
@@ -97,21 +97,28 @@ class InNode:
 
 
 class Network:
+    # A class variable stores every network.
+    networks = []
+
     # An instance of the Network class stores the IDs of all associated nodes.
     def __init__(self):
+        Network.networks.append(self)
         self.input_nodes = []
         self.output_nodes = []
-        self.output = None
     
-    def create_input_nodes(self, bound_vars):
+    def create_input_nodes(self, bound_vars, bias = False):
         # Creates input nodes and appends their IDs to self.input_nodes.
         
         # Arguments:
         #     bound_vars (list/tuple): A list/tuple containing BoundVar instances.
         #                              Used in the creation of InNode instances.
+        #     bias (boolean): Determines whether the network has a bias.
         # Returns: None
         for var in bound_vars:
             self.input_nodes.append(InNode(var).ID)
+        
+        if bias:
+            self.input_nodes.append(InNode(BoundVar(600)).ID)
     
     def create_output_nodes(self, callbacks):
         # Creates output nodes
@@ -123,14 +130,14 @@ class Network:
         for function in callbacks:
             self.output_nodes.append(OutNode(function).ID)
     
-    def connect(self):
+    def connect(self, weights):
         # Adds the required connections between each of the nodes.
 
-        # Arguments: None
+        # Arguments: Two-dimensional list of weights. Each weight is grouped into which input node they're connected to.
         # Returns: None
-        for node in self.input_nodes:
-            for outnode in self.output_nodes:
-                InNode.nodes[node].add_connection(OutNode.nodes[outnode].ID, randint(1, 10) / 10)
+        for node in range(len(self.input_nodes)):
+            for outnode in range(len(self.output_nodes)):
+                InNode.nodes[self.input_nodes[node]].add_connection(OutNode.nodes[self.output_nodes[outnode]].ID, weights[node][outnode])
 
     def update(self):
         # Updates the value of each input node and calculates the resulting effects on the network.
@@ -138,7 +145,7 @@ class Network:
         # Arguments: None
         # Returns: None
         for node in self.input_nodes:
-            InNode.nodes[node].value = InNode.nodes[node].bound_to[0]
+            InNode.nodes[node].value = activation(InNode.nodes[node].bound_to[0]) / 600
 
         for node in self.output_nodes:
             OutNode.nodes[node].get_value()
@@ -157,7 +164,7 @@ if __name__ == "__main__":
         print("cool boi")
     
     def bar():
-        print("bar has won the day")
+        print("bar won")
 
     x = BoundVar(0.5)
     y = BoundVar(0.4)
