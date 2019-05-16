@@ -406,26 +406,3 @@ class Car:
     
     def __repr__(self):
         return str(self.ID)
-
-
-# Tests
-if __name__ == "__main__":
-    from time import sleep
-    from random import randint
-
-    root = tkinter.Tk()
-
-    canvas = tkinter.Canvas(root, width = 600, height = 600, bg = "black")
-    canvas.pack()
-
-    test_car = Car(canvas)
-
-    test_car.engine_force = 2000
-    for i in range(500):
-        test_car.state = Car.possible_states[randint(0, 4)]
-        print(test_car.is_dead)
-        for i in range(10):
-            test_car.update()
-            sleep(0.1)
-    
-    root.mainloop()

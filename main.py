@@ -4,7 +4,7 @@ from time import sleep
 from random import choice
 from car import *
 
-n_cars = 20
+n_cars = 10
 
 def update_chances(cars):
     cars = sorted(cars, key = lambda car: car.distance_travelled)
@@ -34,8 +34,8 @@ def update_population(cars):
         for network in sorted_networks[0]:
             new_weights1 = [[i + randint(1, 10) / 10 for i in row] for row in network.car.weights]
             new_weights2 = [[i - randint(1, 10) / 10 for i in row] for row in network.car.weights]
-            network_children.append(Car(canvas, walls, Network(), new_weights1, 24, 498, 26, 502))
-            network_children.append(Car(canvas, walls, Network(), new_weights2, 24, 498, 26, 502))
+            network_children.append(Car(canvas, walls, Network(), new_weights1, 26, 198, 31, 208))
+            network_children.append(Car(canvas, walls, Network(), new_weights2, 26, 198, 28, 208))
         for network in sorted_networks[1]:
             network_children.append(network.car)
     else:
@@ -52,8 +52,9 @@ def update_population(cars):
         for network in sorted_networks[0]:
             new_weights1 = [[i + randint(1, 10) / 10 for i in row] for row in network.car.weights]
             new_weights2 = [[i - randint(1, 10) / 10 for i in row] for row in network.car.weights]
-            network_children.append(Car(canvas, walls, Network(), new_weights1, 24, 498, 26, 502))
-            network_children.append(Car(canvas, walls, Network(), new_weights2, 24, 498, 26, 502))
+            network_children.append(Car(canvas, walls, Network(), new_weights1, 26, 198, 28, 208))
+            network_children.append(Car(canvas, walls, Network(), new_weights2, 26, 198, 28, 208))
+
     return network_children
 
 
@@ -64,15 +65,15 @@ canvas.pack()
 walls = [
     canvas.create_line(10, 10, 10, 590, fill = "white", width = 2),
     canvas.create_line(590, 10, 590, 500, fill = "white", width = 2),
-    canvas.create_line(10, 10, 190, 110, fill = "white", width = 2),
+    canvas.create_line(10, 110, 190, 110, fill = "white", width = 2),
     canvas.create_line(190, 110, 190, 300, fill = "white", width = 2),
     canvas.create_line(190, 300, 490, 300, fill = "white", width = 2),
     canvas.create_line(490, 300, 490, 10, fill = "white", width = 2),
     canvas.create_line(490, 10, 590, 10, fill = "white", width = 2),
     canvas.create_line(10, 590, 590, 500, fill = "white", width = 2), # Inside Lines Start:
-    canvas.create_line(40, 100, 40, 560, fill = "white", width = 2),
+    canvas.create_line(40, 250, 40, 560, fill = "white", width = 2),
     canvas.create_line(560, 40, 560, 470, fill = "white", width = 2),
-    canvas.create_line(40, 100, 160, 165, fill = "white", width = 2),
+    canvas.create_line(40, 250, 160, 165, fill = "white", width = 2),
     canvas.create_line(160, 165, 160, 330, fill = "white", width = 2),
     canvas.create_line(160, 330, 520, 330, fill = "white", width = 2),
     canvas.create_line(520, 330, 520, 40, fill = "white", width = 2),
@@ -83,8 +84,8 @@ walls = [
 cars = []
 
 for _ in range(n_cars):
-    weights = [[8.100000000000003, 7.999999999999996, 9.4, 5.999999999999998, 6.4999999999999964], [0.5000000000000002, 11.899999999999997, 4.499999999999999, 8.500000000000005, 10.000000000000002], [10.7, 11.400000000000002, 4.999999999999999, 2.2, 5.299999999999999], [2.0999999999999996, 1.8, 0.7999999999999997, 2.899999999999999, 5.6000000000000005], [8.299999999999997, 16.50000000000001, 2.4999999999999996, 8.399999999999999, -2.6], [1.1999999999999997, 7.100000000000001, 11.900000000000002, 13.0, 6.100000000000004], [-1.5999999999999996, 3.1000000000000005, 5.600000000000002, 3.1000000000000005, 1.9]]
-    cars.append(Car(canvas, walls, Network(), weights, 24, 498, 26, 502))
+    weights = [[randint(1, 10) for i in range(5)] for j in range(7)]
+    cars.append(Car(canvas, walls, Network(), weights, 26, 198, 28, 208))
 
 generation_counter = 1
 while True:
@@ -94,19 +95,21 @@ while True:
         else:
             for car in cars:
                 car.update()
-        sleep(0.1)
 
     for car in cars:
         if not car.is_dead:
             car.is_dead = True
-            car.update()
+    
+    for car in cars:
+        car.update()
 
     cars = update_population(cars)
+
     car_distances = sorted(cars, key = lambda car: car.distance_travelled)
     with open("optimal.json", "w") as write_file:
-        json.dump(car_distances[len(car_distances) - 1].weights, write_file)
-    print("Generation:", generation_counter)
-    print(car_distances[len(car_distances) - 1].weights)
+        json.dump(car_distances[len(car_distances) - 1].weights, write_file, indent = 4)
+    print("generation:", generation_counter)
+    print()
     generation_counter += 1
 
 root.mainloop()

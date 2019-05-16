@@ -169,11 +169,13 @@ if __name__ == "__main__":
     x = BoundVar(0.5)
     y = BoundVar(0.4)
     z = BoundVar(0.6)
+
+    weights = [[0, 0], [0, 0], [0, 0]]
     
     test_network.create_input_nodes([x, y, z])
     test_network.create_output_nodes([foo, bar])
 
-    test_network.connect()
+    test_network.connect(weights)
     test_network.update()
 
     for node in test_network.input_nodes:
