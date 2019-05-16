@@ -1,4 +1,5 @@
 import tkinter
+import pyximport; pyximport.install()
 from math import sqrt, sin, cos, atan, radians, pi
 from evolution import *
 
