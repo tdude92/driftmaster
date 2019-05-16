@@ -4,7 +4,7 @@ from time import sleep
 from random import choice
 from car import *
 
-n_cars = 10
+n_cars = 100
 
 def update_chances(cars):
     cars = sorted(cars, key = lambda car: car.distance_travelled)
@@ -32,8 +32,8 @@ def update_population(cars):
     
         network_children = []
         for network in sorted_networks[0]:
-            new_weights1 = [[i + randint(1, 10) / 10 for i in row] for row in network.car.weights]
-            new_weights2 = [[i - randint(1, 10) / 10 for i in row] for row in network.car.weights]
+            new_weights1 = [[i + randint(1, 5) / 10 for i in row] for row in network.car.weights]
+            new_weights2 = [[i - randint(1, 5) / 10 for i in row] for row in network.car.weights]
             network_children.append(Car(canvas, walls, Network(), new_weights1, 26, 198, 31, 208))
             network_children.append(Car(canvas, walls, Network(), new_weights2, 26, 198, 28, 208))
         for network in sorted_networks[1]:
@@ -50,8 +50,8 @@ def update_population(cars):
             sorted_networks[0] = keep[:]
         
         for network in sorted_networks[0]:
-            new_weights1 = [[i + randint(1, 10) / 10 for i in row] for row in network.car.weights]
-            new_weights2 = [[i - randint(1, 10) / 10 for i in row] for row in network.car.weights]
+            new_weights1 = [[i + randint(1, 5) / 10 for i in row] for row in network.car.weights]
+            new_weights2 = [[i - randint(1, 5) / 10 for i in row] for row in network.car.weights]
             network_children.append(Car(canvas, walls, Network(), new_weights1, 26, 198, 28, 208))
             network_children.append(Car(canvas, walls, Network(), new_weights2, 26, 198, 28, 208))
 
@@ -84,7 +84,7 @@ walls = [
 cars = []
 
 for _ in range(n_cars):
-    weights = [[randint(1, 10) for i in range(5)] for j in range(7)]
+    weights = [[randint(1, 10) / 10 for i in range(5)] for j in range(7)]
     cars.append(Car(canvas, walls, Network(), weights, 26, 198, 28, 208))
 
 generation_counter = 1
