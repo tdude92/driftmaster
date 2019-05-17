@@ -1,5 +1,4 @@
 import tkinter
-import pyximport; pyximport.install()
 from math import sqrt, sin, cos, atan, radians, pi
 from evolution import *
 
@@ -249,6 +248,7 @@ class Car:
             elif self.state == Car.possible_states[2]: # Driver is being a coward (braking)
                 self.f_traction = [0, 0]
                 # There should be no braking force if the car is not moving.
+                [round([i * magnitude(self.velocity) for i in self.u][j] - self.velocity[j]) for j in range(2)]
                 if [round([i * magnitude(self.velocity) for i in self.u][i] - self.velocity[i]) for i in range(2)] == [0, 0] and magnitude(self.velocity) > 10:
                     # Check if self.velocity's direction is the same as the direction of self.u (orientation) and if the velocity's magnitude is not 0.
                     self.f_braking = [-i * Car.braking_const for i in self.u] # direction unit vector * braking force

@@ -2,7 +2,7 @@ import tkinter
 import json
 from time import sleep
 from random import choice
-from car import *
+from cars import *
 
 n_cars = 10
 
