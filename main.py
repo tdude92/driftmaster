@@ -2,9 +2,9 @@ import tkinter
 import json
 from time import sleep
 from random import choice
-from cars import *
+from car import *
 
-n_cars = 10
+n_cars = 100
 
 def update_chances(cars):
     cars = sorted(cars, key = lambda car: car.distance_travelled)
