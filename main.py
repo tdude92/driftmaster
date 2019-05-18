@@ -4,7 +4,7 @@ from time import sleep
 from random import choice
 from car import *
 
-n_cars = 100
+n_cars = 20
 
 def update_chances(cars):
     cars = sorted(cars, key = lambda car: car.distance_travelled)

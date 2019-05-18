@@ -18,7 +18,7 @@ def orientation(a, b, c):
 def intersect(a, b, c, d):
         return orientation(a,c,d) != orientation(b,c,d) and orientation(a,b,c) != orientation(a,b,d)
 
-class Car:
+cdef class Car:
     possible_states = (
         "do_nothing",
         "gas",
@@ -103,6 +103,8 @@ class Car:
         self.f_braking = [0, 0] # direction unit vector * braking force
         self.f_centripetal = [0, 0]
         self.acceleration = [(self.f_traction[i] + self.f_drag[i] + self.f_rr[i] + self.f_centripetal[i]) / Car.mass for i in range(2)] # Vector sum of f_traction, f_drag, f_rr divided by mass
+
+        cdef long vision[6][24]
     
 
     # Callbacks
@@ -119,8 +121,12 @@ class Car:
 
 
     def calculate_vision(self):
+        cdef int wall_coords[4], w1[2][2]
+        cdef long vision_line[4], v1[2][2]
+        cdef float  x, y, m1, b1, m2, b2
+
         # Vision.
-        self.vision = [
+        vision = [
             [self.canvas.create_line(
                 self.car_centerX,
                 self.car_centerY,
@@ -171,55 +177,55 @@ class Car:
             )] # Back
         ]
 
-        for line in range(len(self.vision)):
-            self.vision_line = self.canvas.coords(self.vision[line][0])
+        for line in range(len(vision)):
+            vision_line = self.canvas.coords(vision[line][0])
             for wall in self.walls:
-                self.wall_coords = self.canvas.coords(wall)
+                wall_coords = self.canvas.coords(wall)
 
-                self.v1 = [
-                    (self.vision_line[0], self.vision_line[1]),
-                    (self.vision_line[2], self.vision_line[3])
+                v1 = [
+                    (vision_line[0], vision_line[1]),
+                    (vision_line[2], vision_line[3])
                 ]
-                self.w1 = [
-                    (self.wall_coords[0], self.wall_coords[1]),
-                    (self.wall_coords[2], self.wall_coords[3])
+                w1 = [
+                    (wall_coords[0], wall_coords[1]),
+                    (wall_coords[2], wall_coords[3])
                 ]
 
-                if intersect(self.v1[0], self.v1[1], self.w1[0], self.w1[1]):
-                    if self.car_centerX - self.vision_line[2] == 0 and self.wall_coords[0] - self.wall_coords[2] == 0:
+                if intersect(v1[0], v1[1], w1[0], w1[1]):
+                    if self.car_centerX - vision_line[2] == 0 and wall_coords[0] - wall_coords[2] == 0:
                         continue
-                    elif self.car_centerX - self.vision_line[2] == 0: # m1 is 1/0
-                        self.x = self.vision_line[0]
+                    elif self.car_centerX - vision_line[2] == 0: # m1 is 1/0
+                        x = vision_line[0]
 
-                        self.m2 = (self.wall_coords[1] - self.wall_coords[3]) / (self.wall_coords[0] - self.wall_coords[2])
-                        self.b2 = self.wall_coords[1] - self.m2 * self.wall_coords[0]
+                        m2 = (wall_coords[1] - wall_coords[3]) / (wall_coords[0] - wall_coords[2])
+                        b2 = wall_coords[1] - m2 * wall_coords[0]
 
-                        self.y = self.m2 * self.x + self.b2
-                    elif self.wall_coords[0] - self.wall_coords[2] == 0: # m2 is 1/0
-                        self.x = self.wall_coords[0]
+                        y = m2 * x + b2
+                    elif wall_coords[0] - wall_coords[2] == 0: # m2 is 1/0
+                        x = wall_coords[0]
 
-                        self.m1 = (self.car_centerY - self.vision_line[3]) / (self.car_centerX - self.vision_line[2])
-                        self.b1 = self.vision_line[1] - self.m1 * self.vision_line[0]
+                        m1 = (self.car_centerY - vision_line[3]) / (self.car_centerX - vision_line[2])
+                        b1 = vision_line[1] - m1 * vision_line[0]
 
-                        self.y = self.m1 * self.x + self.b1
+                        y = m1 * x + b1
                     else:
-                        self.m1 = (self.car_centerY - self.vision_line[3]) / (self.car_centerX - self.vision_line[2])
-                        self.m2 = (self.wall_coords[1] - self.wall_coords[3]) / (self.wall_coords[0] - self.wall_coords[2])
+                        m1 = (self.car_centerY - vision_line[3]) / (self.car_centerX - vision_line[2])
+                        m2 = (wall_coords[1] - wall_coords[3]) / (wall_coords[0] - wall_coords[2])
 
-                        self.b1 = self.vision_line[1] - self.m1 * self.vision_line[0]
-                        self.b2 = self.wall_coords[1] - self.m2 * self.wall_coords[0]
+                        b1 = vision_line[1] - m1 * vision_line[0]
+                        b2 = wall_coords[1] - m2 * wall_coords[0]
 
                         try:
-                            self.x = (self.b2 - self.b1) / (self.m1 - self.m2)
+                            x = (b2 - b1) / (m1 - m2)
                         except ZeroDivisionError:
                             continue
-                        self.y = self.m1 * self.x + self.b1
+                        y = m1 * x + b1
 
-                    self.vision[line].append(
-                        self.canvas.create_line(self.car_centerX, self.car_centerY, self.x, self.y, fill = "red", width = 2)
+                    vision[line].append(
+                        self.canvas.create_line(self.car_centerX, self.car_centerY, x, y, fill = "red", width = 2)
                     )
         
-        for line_list in self.vision:
+        for line_list in vision:
             for _ in range(len(line_list) - 1):
                 self.temp_line_coords = [self.canvas.coords(line) for line in line_list]
                 self.line_lengths = [sqrt((line[3] - line[1]) ** 2 + (line[2] - line[0]) ** 2) for line in self.temp_line_coords]
@@ -227,10 +233,10 @@ class Car:
                 line_list.pop(self.line_lengths.index(max(self.line_lengths)))
                 self.line_lengths.pop(self.line_lengths.index(max(self.line_lengths)))
         
-        self.vision = [i[0] for i in self.vision]
+        vision = [i[0] for i in vision]
         
-        for i in range(len(self.vision)):
-            coords = self.canvas.coords(self.vision[i])
+        for i in range(len(vision)):
+            coords = self.canvas.coords(vision[i])
             self.vision_lengths[i].update_val(sqrt((coords[0] - coords[2]) ** 2 + (coords[1] - coords[3]) ** 2))
     
     
@@ -379,7 +385,7 @@ class Car:
             self.car_centerX = (self.canvas.coords(self.car[2])[0] + self.canvas.coords(self.car[2])[2]) / 2
             self.car_centerY = (self.canvas.coords(self.car[0])[1] + self.canvas.coords(self.car[0])[3]) / 2
 
-            for line in self.vision:
+            for line in vision:
                 self.canvas.delete(line)
 
             self.calculate_vision()
@@ -399,7 +405,7 @@ class Car:
         else:
             for side in self.car:
                 self.canvas.delete(side)
-            for line in self.vision:
+            for line in vision:
                 self.canvas.delete(line)
             self.canvas.update()
     
